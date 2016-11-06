@@ -18,11 +18,15 @@ Build
 
     $ rebar3 compile # or `proxychains4  rebar3 compile`
 
+API
+-----
+1. commonjs:bundle_js_in_dir/1
+2. commonjs:bundle_single_js/1
 
 Test in erl shell:
 -----
-    $ rm ./tests/**/*-bundled.js # run this in bash, not in rebar3 shell
+    $ rm ./tests/**/*-bundled.js
     $ rebar3 shell
     $ r3:do(compile).
-    $ commonjs:bundle_single_js("./tests/commonjs/entry.js"). #commonjs:bundle_js_in_dir('./tests/commonjs/').
+    $ commonjs:bundle_single_js("./tests/commonjs/entry.js").
     $ os:cmd('node ./tests/commonjs/entry.js-bundled.js').
