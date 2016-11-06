@@ -5,8 +5,8 @@ An CommonJS Packager in Erlang.
 Created by `rebar3 new lib commonjs`
 
 # Project Goal: speed, speed, and speed!
-1. Bundle Common JS modules concurrently using Erlang actors. It is expected to work as [browserify](https://github.com/substack/node-browserify)
-2. Watch and incrementally rebuild Common JS modules concurrently using Erlang actors. It is expected to work as [watchify](https://github.com/substack/watchify)
+1. Bundle Common JS modules concurrently using Erlang actors. It is expected to work like [browserify](https://github.com/substack/node-browserify)
+2. Watch and incrementally rebuild Common JS modules concurrently using Erlang actors. It is expected to work like [watchify](https://github.com/substack/watchify)
 3. It's expected to be a tiny and simple CommonJS Packager. I do't plan to implement all the features like browserify.
 
 ## Status
