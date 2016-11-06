@@ -20,8 +20,8 @@ Build
 
 API
 -----
-1. commonjs:bundle_js_in_dir/1
-2. commonjs:bundle_single_js/1
+1. `commonjs:bundle_js_in_dir/1`
+2. `commonjs:bundle_single_js/1`
 
 Test in erl shell:
 -----
