@@ -1,6 +1,6 @@
 CommonJS.erl
 =====
-An CommonJS Packager in Erlang.
+A CommonJS Packager in Erlang.
 
 Created by `rebar3 new lib commonjs`
 
