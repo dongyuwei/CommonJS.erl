@@ -1,0 +1,15 @@
+{application, commonjs,
+ [{description, "An OTP library to bundle CommonJs source code"},
+  {vsn, "0.1.0"},
+  {registered, []},
+  {applications,
+   [kernel,
+    stdlib
+   ]},
+  {env,[]},
+  {modules, []},
+
+  {maintainers, []},
+  {licenses, []},
+  {links, []}
+ ]}.

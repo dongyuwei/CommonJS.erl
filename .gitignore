@@ -1,6 +1,22 @@
-.DS_Store
-.*.swp
-node_modules
+.rebar3
+_*
+.eunit
+*.o
 *.beam
-tests/tmp/
+*.plt
+*.swp
+*.swo
+.erlang.cookie
+ebin
+log
+erl_crash.dump
+.rebar
+logs
+_build
+.idea
 
+
+.DS_Store
+node_modules
+tests/tmp/
+*-bundled.js

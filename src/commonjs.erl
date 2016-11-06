@@ -1,6 +1,11 @@
--module (packager).
--export ([bundle_js_in_dir/1, bundle/1]).
+-module(commonjs).
 
+%% API exports
+-export ([bundle_js_in_dir/1, bundle_single_js/1]).
+
+%%====================================================================
+%% API functions
+%%====================================================================
 bundle_js_in_dir(Input_dir) ->
     Js_files = filelib:wildcard(filename:join(Input_dir, filename:join("**", "*.js"))),
     Js_files2 = lists:filter(
@@ -11,24 +16,32 @@ bundle_js_in_dir(Input_dir) ->
 
     lists:foreach(
         fun(Js_file) ->
-            spawn(?MODULE, bundle, [Js_file])
+            spawn(?MODULE, bundle_single_js, [Js_file])
         end, 
     Js_files2) .
 
 
-bundle(Js_entry_file) ->
+bundle_single_js(Js_entry_file) ->
     bundle2(Js_entry_file, Js_entry_file),
-    io:format("~p ~n", [get()]),
     [_, _, _, {compile, [_, _, {source, Source}]}, _, _] = ?MODULE:module_info(),
     {ok, Require_fun} = file:read_file(filename:join(filename:dirname(Source), "require.js")),
-    io:format("~p ~n", [Require_fun]).
-    % "(function(){\n" + Require_fun + \nrequire.sourceCache = {};\n" + source "\n})();",
-    % file:write_file(Js_entry_file + "-packed.js", Content).
+    Bundled_content = iolist_to_binary(["(function(){\n", 
+                                       Require_fun, 
+                                       "\nrequire.sourceCache = ", 
+                                       jsx:encode(get()), 
+                                       ";\n",
+                                       get(list_to_binary(Js_entry_file)),
+                                       ";\n})();"]),
+    io:format("Bundled_content:~p ~n", [Bundled_content]),
+    file:write_file(Js_entry_file ++ "-bundled.js", Bundled_content).
 
+%%====================================================================
+%% Internal functions
+%%====================================================================
 bundle2(Js_entry_file, Required_module_name) ->
     io:format("processing ~p ~n", [Required_module_name]),
     {ok, Content} = file:read_file(Js_entry_file),
-    put(Required_module_name, Content), 
+    put(list_to_binary(Required_module_name), Content), 
     Require_regexp = "(require\\((['|\"])(.*?)\\g2\\);?)",
     case re:run(Content, Require_regexp, [global,{capture,[3],list}]) of
     {match, Matched} ->
