@@ -32,14 +32,13 @@ bundle_single_js(Js_entry_file) ->
                                        ";\n",
                                        get(list_to_binary(Js_entry_file)),
                                        ";\n})();"]),
-    io:format("Bundled_content:~p ~n", [Bundled_content]),
+    io:format("~p bundled to:~p ~n", [Js_entry_file, [Js_entry_file,"-bundled.js"]]),
     file:write_file(Js_entry_file ++ "-bundled.js", Bundled_content).
 
 %%====================================================================
 %% Internal functions
 %%====================================================================
 bundle2(Js_entry_file, Required_module_name) ->
-    io:format("processing ~p ~n", [Required_module_name]),
     {ok, Content} = file:read_file(Js_entry_file),
     put(list_to_binary(Required_module_name), Content), 
     Require_regexp = "(require\\((['|\"])(.*?)\\g2\\);?)",
