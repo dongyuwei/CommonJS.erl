@@ -21,7 +21,8 @@ Build
 
 Test in erl shell:
 -----
-    $ rm ./tests/**/*-bundled.js
+    $ rm ./tests/**/*-bundled.js # run this in bash, not in rebar3 shell
     $ rebar3 shell
     $ r3:do(compile).
-    $ commonjs:bundle_js_in_dir('./tests/commonjs/').
+    $ commonjs:bundle_single_js("./tests/commonjs/entry.js"). #commonjs:bundle_js_in_dir('./tests/commonjs/').
+    $ os:cmd('node ./tests/commonjs/entry.js-bundled.js').
