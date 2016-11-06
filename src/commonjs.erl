@@ -32,7 +32,7 @@ bundle_single_js(Js_entry_file) ->
                                        ";\n",
                                        get(list_to_binary(Js_entry_file)),
                                        ";\n})();"]),
-    io:format("~p bundled to:~p ~n", [Js_entry_file, [Js_entry_file,"-bundled.js"]]),
+    io:format("~p bundled to:~p ~n", [Js_entry_file, Js_entry_file ++ "-bundled.js"]),
     file:write_file(Js_entry_file ++ "-bundled.js", Bundled_content).
 
 %%====================================================================
