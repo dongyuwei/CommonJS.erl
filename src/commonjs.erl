@@ -8,17 +8,15 @@
 %%====================================================================
 bundle_js_in_dir(Input_dir) ->
     Js_files = filelib:wildcard(filename:join(Input_dir, filename:join("**", "*.js"))),
-    Js_files2 = lists:filter(
-        fun(Js_file) -> 
-            lists:prefix("_", filename:basename(Js_file)) =:= false 
-        end, 
-    Js_files),
-
     lists:foreach(
         fun(Js_file) ->
-            spawn(?MODULE, bundle_single_js, [Js_file])
+            case lists:prefix("_", filename:basename(Js_file)) of
+                false ->
+                    spawn(?MODULE, bundle_single_js, [Js_file]);
+                true -> do_nothing
+            end
         end, 
-    Js_files2) .
+    Js_files) .
 
 
 bundle_single_js(Js_entry_file) ->
