@@ -37,19 +37,25 @@ bundle_single_js(Js_entry_file) ->
 %% Internal functions
 %%====================================================================
 bundle(Js_entry_file, Required_module_name) ->
-    {ok, Content} = file:read_file(Js_entry_file),
-    put(list_to_binary(Required_module_name), Content), 
-    Require_regexp = "(require\\((['|\"])(.*?)\\g2\\);?)",
-    case re:run(Content, Require_regexp, [global,{capture,[3],list}]) of
-    {match, Matched} ->
-        lists:foreach(
-            fun(Item) -> 
-                [Required_module] = Item,
-                Required_js_path = filename:join(filename:dirname(Js_entry_file), Required_module),
-                bundle(Required_js_path, Required_module)
-            end
-        , Matched);
-    nomatch ->
-        nomatch
-    end .
-
+    case file:read_file_info(Js_entry_file) of
+        {ok, _}         ->
+            {ok, Content} = file:read_file(Js_entry_file),
+            put(list_to_binary(Required_module_name), Content), 
+            Require_regexp = "(require\\((['|\"])(.*?)\\g2\\);?)",
+            case re:run(Content, Require_regexp, [global,{capture,[3],list}]) of
+            {match, Matched} ->
+                lists:foreach(
+                    fun(Item) -> 
+                        [Required_module] = Item,
+                        Required_js_path = filename:join(filename:dirname(Js_entry_file), Required_module),
+                        bundle(Required_js_path, Required_module)
+                    end
+                , Matched);
+            nomatch ->
+                nomatch
+            end;
+        {error, enoent} -> 
+            io:format("~s is missing~n", [Js_entry_file]);
+        {error, Reason} -> 
+            io:format("~s is ~s~n", [Js_entry_file, Reason])
+    end.
