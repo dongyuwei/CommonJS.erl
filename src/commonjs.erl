@@ -20,7 +20,7 @@ bundle_js_in_dir(Input_dir) ->
 
 
 bundle_single_js(Js_entry_file) ->
-    bundle(Js_entry_file, Js_entry_file),
+    bundle(Js_entry_file),
     [_, _, _, {compile, [_, _, {source, Source}]}, _, _] = ?MODULE:module_info(),
     {ok, Require_fun} = file:read_file(filename:join(filename:dirname(Source), "require.js")),
     Bundled_content = iolist_to_binary(["(function(){\n", 
@@ -36,26 +36,22 @@ bundle_single_js(Js_entry_file) ->
 %%====================================================================
 %% Internal functions
 %%====================================================================
-bundle(Js_entry_file, Required_module_name) ->
-    case file:read_file_info(Js_entry_file) of
-        {ok, _}         ->
-            {ok, Content} = file:read_file(Js_entry_file),
-            put(list_to_binary(Required_module_name), Content), 
+bundle(Js_entry_file) ->
+    case file:read_file(Js_entry_file) of
+        {ok, Content}        ->
             Require_regexp = "(require\\((['|\"])(.*?)\\g2\\);?)",
-            case re:run(Content, Require_regexp, [global,{capture,[3],list}]) of
-            {match, Matched} ->
-                lists:foreach(
-                    fun(Item) -> 
-                        [Required_module] = Item,
-                        Required_js_path = filename:join(filename:dirname(Js_entry_file), Required_module),
-                        bundle(Required_js_path, Required_module)
-                    end
-                , Matched);
-            nomatch ->
-                nomatch
+            Replaced = re:replace(Content, Require_regexp, ["require('", filename:join(filename:dirname(Js_entry_file), "\\g3"), "')"], [global]),
+            put(list_to_binary(Js_entry_file), iolist_to_binary(Replaced)), 
+            case re:run(Replaced, Require_regexp, [global,{capture,[3],list}]) of
+                {match, Matched} ->
+                    lists:foreach(
+                        fun(Item) -> 
+                            [Required_js_path] = Item,
+                            bundle(Required_js_path)
+                        end
+                    , Matched);
+                nomatch -> nomatch
             end;
         {error, enoent} -> 
-            io:format("~s is missing~n", [Js_entry_file]);
-        {error, Reason} -> 
-            io:format("~s is ~s~n", [Js_entry_file, Reason])
+            io:format("~s is missing~n", [Js_entry_file])
     end.
