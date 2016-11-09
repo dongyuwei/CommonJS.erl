@@ -40,7 +40,7 @@ bundle(Js_entry_file) ->
     case file:read_file(Js_entry_file) of
         {ok, Content}        ->
             Require_regexp = "(require\\((['|\"])(.*?)\\g2\\);?)",
-            Replaced = re:replace(Content, Require_regexp, ["require('", filename:join(filename:dirname(Js_entry_file), "\\g3"), "')"], [global]),
+            Replaced = re:replace(remove_comments(Content), Require_regexp, ["require('", filename:join(filename:dirname(Js_entry_file), "\\g3"), "')"], [global]),
             put(list_to_binary(Js_entry_file), iolist_to_binary(Replaced)), 
             case re:run(Replaced, Require_regexp, [global,{capture,[3],list}]) of
                 {match, Matched} ->
@@ -55,3 +55,7 @@ bundle(Js_entry_file) ->
         {error, enoent} -> 
             throw(Js_entry_file ++ " is missing")
     end.
+
+%% only remove single line comments right now.
+remove_comments(Content) ->
+    re:replace(Content, "//.*", <<"">>, [global]).
