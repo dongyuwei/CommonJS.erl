@@ -53,5 +53,5 @@ bundle(Js_entry_file) ->
                 nomatch -> nomatch
             end;
         {error, enoent} -> 
-            io:format("~s is missing~n", [Js_entry_file])
+            throw(Js_entry_file ++ " is missing")
     end.
