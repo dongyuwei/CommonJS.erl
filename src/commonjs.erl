@@ -37,8 +37,11 @@ bundle_single_js(Js_entry_file) ->
 %% Internal functions
 %%====================================================================
 bundle(Js_entry_file) ->
-    case file:read_file(Js_entry_file) of
-        {ok, Content}        ->
+    bundle2(Js_entry_file, "").
+
+bundle2(Js_entry_file, Ext_name) ->
+    case file:read_file(Js_entry_file ++ Ext_name) of
+        {ok, Content} ->
             Require_regexp = "(require\\((['|\"])(.*?)\\g2\\);?)",
             Replaced = re:replace(remove_comments(Content), Require_regexp, ["require('", filename:join(filename:dirname(Js_entry_file), "\\g3"), "')"], [global]),
             put(list_to_binary(Js_entry_file), iolist_to_binary(Replaced)), 
@@ -47,7 +50,12 @@ bundle(Js_entry_file) ->
                     lists:foreach(
                         fun(Item) -> 
                             [Required_js_path] = Item,
-                            bundle(Required_js_path)
+                            case lists:suffix(".js", Required_js_path) of
+                                true ->
+                                    bundle2(Required_js_path, "");
+                                false -> 
+                                    bundle2(Required_js_path, ".js")
+                            end
                         end
                     , Matched);
                 nomatch -> nomatch

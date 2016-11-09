@@ -1,4 +1,4 @@
-var bar = require('./_sub_dir/_bar.js');
+var bar = require('./_sub_dir/_bar');
 
 exports.hi = function(){
     console.log('hi, foo')
