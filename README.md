@@ -10,7 +10,7 @@ Created by `rebar3 new lib commonjs`
 3. It's expected to be a tiny and simple CommonJS Packager. I do't plan to implement all the features like browserify.
 
 ## Status
-The core features of Common Js packager/loader is done(It can bundle the `tests/commonjs/entry.js` now). Still work in progress. 
+The core features of Common Js packager/loader was done(It can bundle the `tests/commonjs/entry.js` now). Still work in progress. 
 
 
 Build
