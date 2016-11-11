@@ -16,7 +16,7 @@ The core features of Common Js packager/loader is done(It can bundle the `tests/
 Build
 -----
 
-    $ rebar3 compile # or `proxychains4  rebar3 compile`
+    $ rebar3 compile
 
 API
 -----
