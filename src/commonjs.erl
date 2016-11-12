@@ -20,7 +20,7 @@ bundle_js_in_dir(Input_dir) ->
 
 
 bundle_single_js(Js_entry_file) ->
-    bundle(Js_entry_file),
+    bundle(Js_entry_file, ""),
     [_, _, _, {compile, [_, _, {source, Source}]}, _, _] = ?MODULE:module_info(),
     {ok, Require_fun} = file:read_file(filename:join(filename:dirname(Source), "require.js")),
     Bundled_content = iolist_to_binary(["(function(){\n", 
@@ -36,10 +36,7 @@ bundle_single_js(Js_entry_file) ->
 %%====================================================================
 %% Internal functions
 %%====================================================================
-bundle(Js_entry_file) ->
-    bundle2(Js_entry_file, "").
-
-bundle2(Js_entry_file, Ext_name) ->
+bundle(Js_entry_file, Ext_name) ->
     case file:read_file(Js_entry_file ++ Ext_name) of
         {ok, Content} ->
             Require_regexp = "(require\\((['|\"])(.*?)\\g2\\);?)",
@@ -52,9 +49,9 @@ bundle2(Js_entry_file, Ext_name) ->
                             [Required_js_path] = Item,
                             case lists:suffix(".js", Required_js_path) of
                                 true ->
-                                    bundle2(Required_js_path, "");
+                                    bundle(Required_js_path, "");
                                 false -> 
-                                    bundle2(Required_js_path, ".js")
+                                    bundle(Required_js_path, ".js")
                             end
                         end
                     , Matched);
