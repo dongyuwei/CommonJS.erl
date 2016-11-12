@@ -1,15 +1,15 @@
 {application, commonjs,
- [{description, "An OTP library to bundle CommonJs source code"},
-  {vsn, "0.1.0"},
+ [{description, "A simple Erlang library to bundle Common JS modules"},
+  {vsn, "0.1.1"},
   {registered, []},
   {applications,
    [kernel,
     stdlib
    ]},
   {env,[]},
-  {modules, []},
+  {modules, ["commonjs"]},
 
-  {maintainers, []},
-  {licenses, []},
-  {links, []}
+  {maintainers, ["newdongyuwei@gmail.com"]},
+  {licenses, ["MIT license"]},
+  {links, ["https://github.com/dongyuwei/CommonJS.erl"]}
  ]}.
