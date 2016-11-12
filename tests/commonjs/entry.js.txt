@@ -1,0 +1,8 @@
+I have no exports, but other module can require me as normal module
+{ hi: [Function], name: 'foofoo' }
+hi, foo
+hi, baba
+foo bar
+foobar
+hi, foo
+hi, baba

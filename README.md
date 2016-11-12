@@ -29,4 +29,5 @@ Test in erl shell:
     $ rebar3 shell
     $ r3:do(compile).
     $ commonjs:bundle_single_js("./tests/commonjs/entry.js").
-    $ os:cmd('node ./tests/commonjs/entry.js-bundled.js').
+    $ {ok, Content} = file:read_file("tests/commonjs/entry.js.txt").
+    $ Content =:= list_to_binary(os:cmd("node ./tests/commonjs/entry.js-bundled.js")).
