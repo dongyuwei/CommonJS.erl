@@ -21,10 +21,8 @@ bundle_js_in_dir(Input_dir) ->
 
 bundle_single_js(Js_entry_file) ->
     bundle(Js_entry_file, ""),
-    [_, _, _, {compile, [_, _, {source, Source}]}, _, _] = ?MODULE:module_info(),
-    {ok, Require_fun} = file:read_file(filename:join(filename:dirname(Source), "require.js")),
     Bundled_content = iolist_to_binary(["(function(){\n", 
-                                       Require_fun, 
+                                       js_require_function(), 
                                        "\nrequire.sourceCache = ", 
                                        jsx:encode(get()), 
                                        ";\n",
@@ -64,3 +62,25 @@ bundle(Js_entry_file, Ext_name) ->
 %% only remove single line comments right now.
 remove_comments(Content) ->
     re:replace(Content, "//.*", <<"">>, [global]).
+
+js_require_function() ->
+    %% see https://github.com/marijnh/Eloquent-JavaScript/blob/master/10_modules.txt#L465
+    <<"
+    function require(url){
+        if(!require.cache[url]){
+            var source = require.sourceCache[url];
+            var exports = {};
+            var module = {
+                exports: exports
+            };
+            new Function('exports, module, require', source)(exports, module, require);
+            require.cache[url] = module.exports;
+            return module.exports;
+        } else {
+            return require.cache[url];
+        }
+    }
+
+    require.cache = {};
+    require.sourceCache = {};
+    ">>.
