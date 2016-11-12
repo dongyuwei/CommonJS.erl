@@ -24,7 +24,7 @@ bundle_single_js(Js_entry_file) ->
     Bundled_content = iolist_to_binary(["(function(){\n", 
                                        js_require_function(), 
                                        "\nrequire.sourceCache = ", 
-                                       jsx:encode(get()), 
+                                       jsx:prettify(jsx:encode(get())), 
                                        ";\n",
                                        get(list_to_binary(Js_entry_file)),
                                        ";\n})();"]),
