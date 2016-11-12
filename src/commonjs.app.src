@@ -4,10 +4,11 @@
   {registered, []},
   {applications,
    [kernel,
-    stdlib
+    stdlib,
+    jsx
    ]},
   {env,[]},
-  {modules, ["commonjs"]},
+  {modules, [commonjs]},
 
   {maintainers, ["newdongyuwei@gmail.com"]},
   {licenses, ["MIT license"]},
