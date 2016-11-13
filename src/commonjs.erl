@@ -39,7 +39,7 @@ bundle(Js_entry_file, Ext_name) ->
         {ok, Content} ->
             Require_regexp = "(require\\((['|\"])(.*?)\\g2\\);?)",
             Replaced = re:replace(remove_comments(Content), Require_regexp, ["require('", filename:join(filename:dirname(Js_entry_file), "\\g3"), "')"], [global]),
-            put(list_to_binary(Js_entry_file), iolist_to_binary(Replaced)), 
+            put(list_to_binary(Js_entry_file), iolist_to_binary([Replaced, "\n//# sourceURL=", Js_entry_file])), 
             case re:run(Replaced, Require_regexp, [global,{capture,[3],list}]) of
                 {match, Matched} ->
                     lists:foreach(
