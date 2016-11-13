@@ -1,23 +1,20 @@
 -module(commonjs).
 
 %% API exports
--export ([bundle_js_in_dir/1, bundle_single_js/1]).
+-export ([bundle_single_js/1, bundle_js_in_dir/2, watch/1]).
 
 %%====================================================================
 %% API functions
 %%====================================================================
-bundle_js_in_dir(Input_dir) ->
-    Js_files = filelib:wildcard(filename:join(Input_dir, filename:join("**", "*.js"))),
-    lists:foreach(
-        fun(Js_file) ->
-            case lists:prefix("_", filename:basename(Js_file)) of
-                false ->
-                    spawn(?MODULE, bundle_single_js, [Js_file]);
-                true -> do_nothing
-            end
-        end, 
-    Js_files) .
-
+bundle_js_in_dir(Input_dir, Watch_mode) ->
+    case Watch_mode of
+        true ->
+            bundle_js_in_dir(Input_dir),
+            watch(Input_dir);
+        _ ->
+            bundle_js_in_dir(Input_dir)
+    end.
+    
 
 bundle_single_js(Js_entry_file) ->
     bundle(Js_entry_file, ""),
@@ -31,9 +28,37 @@ bundle_single_js(Js_entry_file) ->
     io:format("~p bundled to:~p ~n", [Js_entry_file, Js_entry_file ++ "-bundled.js"]),
     file:write_file(Js_entry_file ++ "-bundled.js", Bundled_content).
 
+watch(Dir) ->
+    io:format("watching ~p ~n", [Dir]),
+    fs:start_link(fs_watcher, filename:absname(Dir)),
+    % fs:subscribe(fs_watcher),
+    % on_file_changed().
+    spawn(fun() -> fs:subscribe(fs_watcher), on_file_changed() end).
+
 %%====================================================================
 %% Internal functions
 %%====================================================================
+bundle_js_in_dir(Input_dir) ->
+    Js_files = filelib:wildcard(filename:join(Input_dir, filename:join("**", "*.js"))),
+    lists:foreach(
+        fun(Js_file) ->
+            case lists:prefix("_", filename:basename(Js_file)) of
+                false ->
+                    Pid = spawn(?MODULE, bundle_single_js, [Js_file]),
+                    io:format("Pid:~p ~n", [Pid]);
+                true -> do_nothing
+            end
+        end, 
+    Js_files) .
+
+on_file_changed() ->
+    receive
+        {_Pid, {fs,file_event}, {File, [inodemetamod,modified]}} ->
+            io:format("~p ~n", [File ++ " changed"]);
+        _ -> ignore
+    end,
+    on_file_changed().
+
 bundle(Js_entry_file, Ext_name) ->
     case file:read_file(Js_entry_file ++ Ext_name) of
         {ok, Content} ->

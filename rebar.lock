@@ -1,4 +1,8 @@
-[{<<"jsx">>,
+[{<<"fs">>,
+  {git,"https://github.com/synrc/fs.git",
+       {ref,"80d6b61ba393eb7f77c759c672899be7b2688f1f"}},
+  0},
+ {<<"jsx">>,
   {git,"https://github.com/talentdeficit/jsx.git",
        {ref,"3074d4865b3385a050badf7828ad31490d860df5"}},
   0}].
