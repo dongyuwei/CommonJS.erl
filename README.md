@@ -27,9 +27,9 @@ API
 
 Test in erl shell:
 -----
-    $ rm ./tests/**/*-bundled.js
     $ rebar3 shell
+    $ os:cmd("rm ./tests/**/*-bundled.js").
     $ r3:do(compile).
-    $ commonjs:bundle_single_js("./tests/commonjs/entry.js").
+    $ commonjs:bundle_js_in_dir("./tests", false).
     $ {ok, Content} = file:read_file("tests/commonjs/entry.js.txt").
     $ Content =:= list_to_binary(os:cmd("node ./tests/commonjs/entry.js-bundled.js")).

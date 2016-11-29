@@ -119,9 +119,11 @@ bundle(Js_entry_file, Ext_name) ->
             throw(Js_entry_file ++ " is missing")
     end.
 
-%% only remove single line comments right now.
 remove_comments(Content) ->
-    re:replace(Content, "//.*", <<"">>, [global]).
+    Replaced = re:replace(Content, "//.*", <<"">>, [global]),
+
+    Regexp_block_comment = "\\/\\*[^*]*\\*+([^\\/*][^*]*\\*+)*\\/",
+    re:replace(Replaced, Regexp_block_comment, <<" ">>, [global]).
 
 js_require_function() ->
     %% see https://github.com/marijnh/Eloquent-JavaScript/blob/master/10_modules.txt#L465
