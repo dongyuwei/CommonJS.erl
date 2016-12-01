@@ -78,9 +78,11 @@ bundle_js_entries([Js_entry_file|Rest], Acc, Watch_mode) ->
 
 watch(Dir, Pids) ->
     io:format("watching ~p ~n", [Dir]),
-    fs:start_link(fs_watcher, filename:absname(Dir)),
-    fs:subscribe(fs_watcher),
-    on_file_changed(Pids).
+    spawn(fun()-> 
+        fs:start_link(fs_watcher, filename:absname(Dir)),
+        fs:subscribe(fs_watcher),
+        on_file_changed(Pids)
+    end).
 
 on_file_changed(Pids) ->
     receive
