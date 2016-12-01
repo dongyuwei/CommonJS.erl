@@ -22,7 +22,7 @@ Build
 
 API
 -----
-1. `commonjs:bundle_single_js/(Js_entry_file)`
+1. `commonjs:bundle_single_js(Js_entry_file)`
 2. `commonjs:bundle_js_in_dir(Input_dir, Watch_mode)`
 
 Test in erl shell:
