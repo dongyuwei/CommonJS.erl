@@ -9,10 +9,10 @@
 bundle_js_in_dir(Input_dir, Watch_mode) ->
     case Watch_mode of
         true ->
-            Pids = bundle_js_in_dir(Input_dir),
+            Pids = bundle_js_in_dir_(Input_dir, true),
             watch(Input_dir, Pids);
         _ ->
-            bundle_js_in_dir(Input_dir)
+            bundle_js_in_dir_(Input_dir, false)
     end.
     
 bundle_single_js(Js_entry_file) ->
@@ -31,9 +31,7 @@ bundle_single_js(Js_entry_file) ->
                                        maps:get(list_to_binary(Js_entry_file), get("source_cache")),
                                        ";\n})();"]),
     io:format("~p bundled to:~p ~n", [Js_entry_file, Js_entry_file ++ "-bundled.js"]),
-    file:write_file(Js_entry_file ++ "-bundled.js", Bundled_content),
-    rebuild_entry_if_module_changed().
-
+    file:write_file(Js_entry_file ++ "-bundled.js", Bundled_content).
 %%====================================================================
 %% Internal functions
 %%====================================================================
@@ -56,20 +54,27 @@ rebuild_entry_if_module_changed() ->
 string_contains(Big, Small)->
     string:str(Big, Small) > 0.
 
-bundle_js_in_dir(Input_dir) ->
+bundle_js_in_dir_(Input_dir, Watch_mode) ->
     Js_files = filelib:wildcard(filename:join(Input_dir, filename:join("**", "*.js"))),
     Files = lists:filter(
         fun(Js_file) ->
             lists:prefix("_", filename:basename(Js_file)) =:= false
         end, 
     Js_files),
-    loop_and_return_pids(Files, []).
+    bundle_js_entries(Files, [], Watch_mode).
 
-loop_and_return_pids([], Acc) ->
+bundle_js_entries([], Acc, _) ->
     Acc;
-loop_and_return_pids([H|T], Acc) ->
-    Pid = spawn(?MODULE, bundle_single_js, [H]),
-    loop_and_return_pids(T, [Pid|Acc]).
+bundle_js_entries([Js_entry_file|Rest], Acc, Watch_mode) ->
+    Pid = spawn(fun() -> 
+        bundle_single_js(Js_entry_file),
+        case Watch_mode of
+            true ->
+                rebuild_entry_if_module_changed();
+            _ -> do_nothing
+        end
+    end),
+    bundle_js_entries(Rest, [Pid|Acc], Watch_mode).
 
 watch(Dir, Pids) ->
     io:format("watching ~p ~n", [Dir]),
