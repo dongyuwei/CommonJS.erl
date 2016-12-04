@@ -22,7 +22,17 @@ bundle_single_js(Js_entry_file) ->
             put("source_cache", #{});
         false -> do_nothing
     end,
+    case get("dependency_graph") =:= undefined of
+        true ->
+            put("dependency_graph", #{});
+        false -> do_nothing
+    end,
     bundle(Js_entry_file, ""),
+    write_bundled_file(Js_entry_file).
+%%====================================================================
+%% Internal functions
+%%====================================================================
+write_bundled_file(Js_entry_file) ->
     Bundled_content = iolist_to_binary(["(function(){\n", 
                                        js_require_function(), 
                                        "\nrequire.sourceCache = ", 
@@ -32,18 +42,23 @@ bundle_single_js(Js_entry_file) ->
                                        ";\n})();"]),
     io:format("~p bundled to:~p ~n", [Js_entry_file, Js_entry_file ++ "-bundled.js"]),
     file:write_file(Js_entry_file ++ "-bundled.js", Bundled_content).
-%%====================================================================
-%% Internal functions
-%%====================================================================
+
 rebuild_entry_if_module_changed() ->
     receive
         {file_changed, File} ->
             io:format("file_changed ~p ~n", [File]),
             lists:foreach(
-                fun(Key) -> 
-                    case string_contains(File, binary_to_list(filename:join(Key, ""))) of
+                fun(Module_name) -> 
+                    case string_contains(File, binary_to_list(filename:join(Module_name, ""))) of
                         true ->
-                            bundle_single_js(get("entry_name"));
+                            Required_module = binary_to_list(Module_name),
+                            case lists:suffix(".js", Required_module) of
+                                true ->
+                                    bundle(Required_module, "");
+                                false -> 
+                                    bundle(Required_module, ".js")
+                            end,
+                            write_bundled_file(get("entry_name"));
                         false -> do_nothing
                     end
                 end, 
@@ -107,20 +122,28 @@ bundle(Js_entry_file, Ext_name) ->
             Replaced = re:replace(remove_comments(Content), Require_regexp, ["require('", filename:join(filename:dirname(Js_entry_file), "\\g3"), "')"], [global]),
             Map = get("source_cache"),
             put("source_cache", Map#{list_to_binary(Js_entry_file) => iolist_to_binary([Replaced, "\n//# sourceURL=", Js_entry_file])}),
+            Dependency_map = get("dependency_graph"),
             case re:run(Replaced, Require_regexp, [global,{capture,[3],list}]) of
                 {match, Matched} ->
-                    lists:foreach(
-                        fun(Item) -> 
-                            [Required_js_path] = Item,
-                            case lists:suffix(".js", Required_js_path) of
-                                true ->
-                                    bundle(Required_js_path, "");
-                                false -> 
-                                    bundle(Required_js_path, ".js")
-                            end
-                        end
-                    , Matched);
-                nomatch -> nomatch
+                    Old_dependencies = maps:get(Js_entry_file, Dependency_map, []),
+                    Current_dependencies = [Module || [Module] <- Matched],
+                    case Current_dependencies =:= Old_dependencies of
+                        true -> do_nothing;
+                        false ->
+                            put("dependency_graph", Dependency_map#{Js_entry_file => Current_dependencies}),
+                            lists:foreach(
+                                fun(Required_js_path) -> 
+                                    case lists:suffix(".js", Required_js_path) of
+                                        true ->
+                                            bundle(Required_js_path, "");
+                                        false -> 
+                                            bundle(Required_js_path, ".js")
+                                    end
+                                end
+                            , Current_dependencies)
+                    end;
+                nomatch -> 
+                    put("dependency_graph", Dependency_map#{Js_entry_file => []})
             end;
         {error, enoent} -> 
             throw(Js_entry_file ++ " is missing")
