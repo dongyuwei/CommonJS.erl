@@ -50,6 +50,8 @@ handle_http(Req) ->
     Req:ok("Not a static file request.").
 
 handle_websocket(Ws) ->
+    Table = ets:new(web_socket_table, [public, named_table]),
+    ets:insert(Table, {web_socket, Ws}),
     receive
         {browser, Data} ->
             Ws:send(["received '", Data, "'"]),
@@ -58,14 +60,17 @@ handle_websocket(Ws) ->
             handle_websocket(Ws)
     end.
 
+get_bundled_content(Js_entry_file) ->
+    iolist_to_binary(["(function(){\n", 
+        js_require_function(), 
+        "\nrequire.sourceCache = ", 
+        jsx:prettify(jsx:encode(get("source_cache"))), 
+        ";\n",
+        maps:get(list_to_binary(Js_entry_file), get("source_cache")),
+        ";\n})();"]).
+
 write_bundled_file(Js_entry_file) ->
-    Bundled_content = iolist_to_binary(["(function(){\n", 
-                                       js_require_function(), 
-                                       "\nrequire.sourceCache = ", 
-                                       jsx:prettify(jsx:encode(get("source_cache"))), 
-                                       ";\n",
-                                       maps:get(list_to_binary(Js_entry_file), get("source_cache")),
-                                       ";\n})();"]),
+    Bundled_content = get_bundled_content(Js_entry_file),
     io:format("~p bundled to:~p ~n", [Js_entry_file, Js_entry_file ++ "-bundled.js"]),
     file:write_file(Js_entry_file ++ "-bundled.js", Bundled_content).
 
@@ -84,7 +89,17 @@ rebuild_entry_if_module_changed() ->
                                 false -> 
                                     bundle(Required_module, ".js")
                             end,
-                            write_bundled_file(get("entry_name"));
+                            Entry = get("entry_name"),
+                            case ets:info(web_socket_table) of
+                                undefined -> do_nothing;
+                                _ ->
+                                    case ets:lookup(web_socket_table, web_socket) of
+                                        [{web_socket,Misultin_ws}] ->
+                                            Misultin_ws:send([get_bundled_content(Entry)]);
+                                        _ -> do_nothing
+                                    end
+                            end,
+                            write_bundled_file(Entry);
                         false -> do_nothing
                     end
                 end, 

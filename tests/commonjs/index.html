@@ -20,6 +20,7 @@
                 ws.onmessage = function (evt) {
                     var receivedMsg = evt.data;
                     console.log("server sent the following: '" + receivedMsg + "'");
+                    eval(evt.data);
                 };
                 ws.onclose = function() {
                     console.log("websocket was closed");
