@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>test commonjs modules</title>
+</head>
+<body>
+    <script src="/static/entry.js-bundled.js"></script>
+    <script type="text/javascript">
+        void function(){
+            var ws;
+            if ("WebSocket" in window) {
+                ws = new WebSocket("ws://localhost:8020/service");
+            }
+
+            if (ws) {
+                ws.onopen = function() {
+                    console.log("websocket connected!");
+                };
+                ws.onmessage = function (evt) {
+                    var receivedMsg = evt.data;
+                    console.log("server sent the following: '" + receivedMsg + "'");
+                };
+                ws.onclose = function() {
+                    console.log("websocket was closed");
+                };
+            }
+        }();
+    </script>
+</body>
+</html>

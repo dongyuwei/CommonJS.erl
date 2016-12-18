@@ -2,6 +2,7 @@
 
 %% API exports
 -export ([bundle_single_js/1, bundle_js_in_dir/2]).
+-export([start_server/1, stop_server/0]).
 
 %%====================================================================
 %% API functions
@@ -29,9 +30,34 @@ bundle_single_js(Js_entry_file) ->
     end,
     bundle(Js_entry_file, ""),
     write_bundled_file(Js_entry_file).
+
+start_server(Dir) ->
+    bundle_js_in_dir(Dir, true),
+    misultin:start_link([
+        {port, 8020},
+        {static, Dir},
+        {loop, fun(Req) -> handle_http(Req) end},
+        {ws_loop, fun(Ws) -> handle_websocket(Ws) end}
+    ]).
+
+stop_server() ->
+    misultin:stop().
+
 %%====================================================================
 %% Internal functions
 %%====================================================================
+handle_http(Req) ->
+    Req:ok("Not a static file request.").
+
+handle_websocket(Ws) ->
+    receive
+        {browser, Data} ->
+            Ws:send(["received '", Data, "'"]),
+            handle_websocket(Ws);
+        _Ignore ->
+            handle_websocket(Ws)
+    end.
+
 write_bundled_file(Js_entry_file) ->
     Bundled_content = iolist_to_binary(["(function(){\n", 
                                        js_require_function(), 
@@ -73,7 +99,7 @@ bundle_js_in_dir_(Input_dir, Watch_mode) ->
     Js_files = filelib:wildcard(filename:join(Input_dir, filename:join("**", "*.js"))),
     Files = lists:filter(
         fun(Js_file) ->
-            lists:prefix("_", filename:basename(Js_file)) =:= false
+            (lists:prefix("_", filename:basename(Js_file)) == false) and (lists:suffix("-bundled.js", Js_file) == false)
         end, 
     Js_files),
     bundle_js_entries(Files, [], Watch_mode).
