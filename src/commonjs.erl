@@ -187,7 +187,7 @@ bundle(Js_entry_file, Ext_name) ->
                     put("dependency_graph", Dependency_map#{Js_entry_file => []})
             end;
         {error, enoent} -> 
-            throw(Js_entry_file ++ " is missing")
+            io:format("~p ~n", [Js_entry_file ++ " is missing"])
     end.
 
 remove_comments(Content) ->
