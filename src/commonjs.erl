@@ -187,8 +187,11 @@ bundle(Js_entry_file, Ext_name) ->
                     put("dependency_graph", Dependency_map#{Js_entry_file => []})
             end;
         {error, enoent} -> 
-            io:format("~p ~n", [Js_entry_file ++ " is missing"])
+            error_log(Js_entry_file ++ " is missing")
     end.
+
+error_log(Msg) ->
+    io:format("\033[91m ~p \033[0m~n",[Msg]).
 
 remove_comments(Content) ->
     Replaced = re:replace(Content, "//.*", <<"">>, [global]),
@@ -200,8 +203,11 @@ js_require_function() ->
     %% see https://github.com/marijnh/Eloquent-JavaScript/blob/master/10_modules.txt#L465
     <<"
     function require(url){
-        if(!require.cache[url]){
+        if (!require.cache[url]) {
             var source = require.sourceCache[url];
+            if (!source) {
+                throw new Error(url + ' is missing!');
+            }
             var exports = {};
             var module = {
                 exports: exports
