@@ -8,22 +8,25 @@
     <script src="/static/entry.js-bundled.js"></script>
     <script type="text/javascript">
         void function(){
-            var ws;
             if ("WebSocket" in window) {
-                ws = new WebSocket("ws://localhost:8020/service");
-            }
-
-            if (ws) {
+                var ws = new WebSocket("ws://localhost:8020/service");
                 ws.onopen = function() {
                     console.log("websocket connected!");
                 };
                 ws.onmessage = function (evt) {
-                    var receivedMsg = evt.data;
-                    console.log("server sent the following: '" + receivedMsg + "'");
-                    eval(evt.data);
+                    var changedModuleContent = evt.data;
+                    var moduleName = changedModuleContent.split('//# sourceURL=')[1];
+                    console.log('changed module: ' + moduleName);
+                    window.postMessage('source_code_changed', "*");
+                    setTimeout(function() {
+                        var require = window.__require__;
+                        delete require.cache[moduleName];
+                        require.sourceCache[moduleName] = changedModuleContent;
+                        require.cache[moduleName] = require(moduleName); //run the module's new source code
+                    }, 0);
                 };
                 ws.onclose = function() {
-                    console.log("websocket was closed");
+                    console.log("websocket closed");
                 };
             }
         }();

@@ -95,7 +95,8 @@ rebuild_entry_if_module_changed() ->
                                 _ ->
                                     case ets:lookup(web_socket_table, web_socket) of
                                         [{web_socket,Misultin_ws}] ->
-                                            Misultin_ws:send([get_bundled_content(Entry)]);
+                                            Changed_module_content = maps:get(Module_name, get("source_cache")),
+                                            Misultin_ws:send([Changed_module_content]);
                                         _ -> do_nothing
                                     end
                             end,
@@ -222,4 +223,8 @@ js_require_function() ->
 
     require.cache = {};
     require.sourceCache = {};
+
+    if (typeof window !== 'undefined') {
+        window.__require__ = require;
+    }
     ">>.
