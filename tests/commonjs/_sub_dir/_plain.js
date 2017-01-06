@@ -1,3 +1,5 @@
+require('./_data_binding.js')
+
 console.log('I have no exports, but other module can require me as normal module');
 
 if (typeof document !== 'undifined'){
