@@ -22,7 +22,11 @@
                         var require = window.__require__;
                         delete require.cache[moduleName];
                         require.sourceCache[moduleName] = changedModuleContent;
-                        require.cache[moduleName] = require(moduleName); //run the module's new source code
+
+                        // Rerun the module's new source code, should bubble the process to entry file.
+                        // My assumption is that: The parent or ancestor module should take care of themselves.
+                        // Here just a simple demo of HMR.
+                        require.cache[moduleName] = require(moduleName);
                     }, 0);
                 };
                 ws.onclose = function() {
