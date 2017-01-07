@@ -4,12 +4,14 @@ console.log('I have no exports, but other module can require me as normal module
 
 if (typeof document !== 'undifined'){
     var onClicked = function(){
-        console.log('you clicked the document!');
+        console.log('you clicked the document!2');
     };
     document.addEventListener('click', onClicked, false);
 
     //dispose the old event listener if any module changed
-    window.addEventListener("message", function(event){
+    function onCodeUpdated(event) {
+        window.removeEventListener('message', onCodeUpdated);
+
         var data = event.data;
         if (data.eventType === 'sourceCodeChanged') {
             document.removeEventListener('click', onClicked);
@@ -22,5 +24,6 @@ if (typeof document !== 'undifined'){
             require.sourceCache[moduleName] = data.moduleContent;
             require.cache[moduleName] = require(moduleName);
         }
-    }, false);
+    }
+    window.addEventListener("message", onCodeUpdated, false);
 }
