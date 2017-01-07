@@ -17,20 +17,15 @@
                     var changedModuleContent = evt.data;
                     var moduleName = changedModuleContent.split('//# sourceURL=')[1];
                     console.log('changed module: ' + moduleName);
-                    window.postMessage('source_code_changed', "*");
-                    setTimeout(function() {
-                        var require = window.__require__;
-                        delete require.cache[moduleName];
-                        require.sourceCache[moduleName] = changedModuleContent;
-
-                        // Rerun the module's new source code, should bubble the process to entry file.
-                        // My assumption is that: The parent or ancestor module should take care of themselves.
-                        // Here just a simple demo of HMR.
-                        require.cache[moduleName] = require(moduleName);
-                    }, 0);
+                    window.postMessage({
+                        eventType: 'sourceCodeChanged',
+                        moduleName: moduleName,
+                        moduleContent: changedModuleContent
+                    }, "*");
                 };
                 ws.onclose = function() {
                     console.log("websocket closed");
+                    window.location.reload(true);
                 };
             }
         }();

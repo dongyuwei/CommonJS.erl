@@ -10,8 +10,17 @@ if (typeof document !== 'undifined'){
 
     //dispose the old event listener if any module changed
     window.addEventListener("message", function(event){
-        if (event.data === 'source_code_changed') {
+        var data = event.data;
+        if (data.eventType === 'sourceCodeChanged') {
             document.removeEventListener('click', onClicked);
+
+            // Rerun the module's new source code, should bubble the process to entry file.
+            // My assumption is that: The parent or ancestor module should take care of themselves.
+            // Here just a simple demo of HMR.
+            var moduleName = data.moduleName;
+            delete require.cache[moduleName];
+            require.sourceCache[moduleName] = data.moduleContent;
+            require.cache[moduleName] = require(moduleName);
         }
     }, false);
 }

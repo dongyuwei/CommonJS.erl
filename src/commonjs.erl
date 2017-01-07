@@ -223,8 +223,4 @@ js_require_function() ->
 
     require.cache = {};
     require.sourceCache = {};
-
-    if (typeof window !== 'undefined') {
-        window.__require__ = require;
-    }
     ">>.
