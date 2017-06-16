@@ -8,7 +8,6 @@ Object.defineProperty(userModel, 'email', {
         return formInputValue;
     },
     set: function (value) {
-        console.log(value);
         formInputValue = value;
     }
 });

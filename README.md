@@ -27,15 +27,19 @@ API
 1. `commonjs:bundle_single_js(Js_entry_file)`
 2. `commonjs:bundle_js_in_dir(Input_dir, Watch_mode)`
 3. `commonjs:start_server(Assets_dir, Port).`
-    1. start dev server: `commonjs:start_server("./tests/commonjs", 8020).`
+    1. start dev server: `commonjs:start_server("./test/commonjs", 8020).`
     2. visit http://127.0.0.1:8020/static/index.html
 4. `commonjs:stop_server()`
 
 Test in erl shell:
 -----
     $ rebar3 shell
-    $ os:cmd("rm ./tests/**/*-bundled.js").
+    $ os:cmd("rm ./test/**/*-bundled.js").
     $ r3:do(compile).
-    $ commonjs:bundle_js_in_dir("./tests", false).
-    $ {ok, Content} = file:read_file("tests/commonjs/entry.js.txt").
-    $ Content =:= list_to_binary(os:cmd("node ./tests/commonjs/entry.js-bundled.js")).
+    $ commonjs:bundle_js_in_dir("./test", false).
+    $ {ok, Content} = file:read_file("test/commonjs/entry.js.txt").
+    $ Content =:= list_to_binary(os:cmd("node ./test/commonjs/entry.js-bundled.js")).
+
+Run eunit test:
+-----
+`rebar3 eunit`

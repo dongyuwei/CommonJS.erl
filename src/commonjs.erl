@@ -72,7 +72,8 @@ get_bundled_content(Js_entry_file) ->
 write_bundled_file(Js_entry_file) ->
     Bundled_content = get_bundled_content(Js_entry_file),
     io:format("~p bundled to:~p ~n", [Js_entry_file, Js_entry_file ++ "-bundled.js"]),
-    file:write_file(Js_entry_file ++ "-bundled.js", Bundled_content).
+    file:write_file(Js_entry_file ++ "-bundled.js", Bundled_content),
+    Bundled_content.
 
 rebuild_entry_if_module_changed() ->
     receive
