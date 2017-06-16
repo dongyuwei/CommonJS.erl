@@ -19,3 +19,5 @@ _build
 node_modules
 tests/tmp/
 *-bundled.js
+
+commonjs.iml
