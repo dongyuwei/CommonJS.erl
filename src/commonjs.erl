@@ -2,7 +2,6 @@
 
 %% API exports
 -export ([bundle_single_js/1, bundle_js_in_dir/2]).
--export([start_server/2, stop_server/0]).
 
 %%====================================================================
 %% API functions
@@ -17,102 +16,11 @@ bundle_js_in_dir(Input_dir, Watch_mode) ->
     end.
     
 bundle_single_js(Js_entry_file) ->
-    State = #{
-        entry_name       => Js_entry_file,
-        source_cache     => #{},
-        dependency_graph => #{}
-    },
-
-    New_state = bundle(Js_entry_file, "", State),
-    write_bundled_file(Js_entry_file, New_state).
-
-start_server(Dir, Port) ->
-    bundle_js_in_dir(Dir, true),
-    misultin:start_link([
-        {port, Port},
-        {static, Dir},
-        {loop, fun(Req) -> handle_http(Req) end},
-        {ws_loop, fun(Ws) -> handle_websocket(Ws) end}
-    ]).
-
-stop_server() ->
-    misultin:stop().
+    commonjs_packager:bundle_single_js(Js_entry_file, false).
 
 %%====================================================================
 %% Internal functions
 %%====================================================================
-handle_http(Req) ->
-    Req:ok("Not a static file request.").
-
-handle_websocket(Ws) ->
-    Table = ets:new(web_socket_table, [public, named_table]),
-    ets:insert(Table, {web_socket, Ws}),
-    receive
-        {browser, Data} ->
-            Ws:send(["received '", Data, "'"]),
-            handle_websocket(Ws);
-        _Ignore ->
-            handle_websocket(Ws)
-    end.
-
-get_bundled_content(Js_entry_file, State) ->
-    iolist_to_binary(["(function(){\n", 
-        js_require_function(), 
-        "\nrequire.sourceCache = ", 
-        jsx:prettify(jsx:encode(maps:get(source_cache, State))),
-        ";\n",
-        maps:get(list_to_binary(Js_entry_file), maps:get(source_cache, State)),
-        ";\n})();"]).
-
-write_bundled_file(Js_entry_file, State) ->
-    Bundled_content = get_bundled_content(Js_entry_file, State),
-    io:format("~p bundled to:~p ~n", [Js_entry_file, Js_entry_file ++ "-bundled.js"]),
-    file:write_file(Js_entry_file ++ "-bundled.js", Bundled_content),
-    Bundled_content.
-
-rebuild_entry_if_module_changed() ->
-    receive
-        {file_changed, File} ->
-            io:format("file_changed ~p ~n", [File]),
-            lists:foreach(
-                fun(Module_name) -> 
-                    case string_contains(File, binary_to_list(filename:join(Module_name, ""))) of
-                        true ->
-                            Required_module = binary_to_list(Module_name),
-                            State = #{
-                                source_cache     => #{},
-                                dependency_graph => #{}
-                            },
-                            case lists:suffix(".js", Required_module) of
-                                true ->
-                                    State1 = maps:put(entry_name, Required_module, State),
-                                    bundle(Required_module, "", State1);
-                                false ->
-                                    State1 = maps:put(entry_name, Required_module ++ ".js", State),
-                                    bundle(Required_module, ".js", State1)
-                            end,
-                            Entry = get(entry_name),
-                            case ets:info(web_socket_table) of
-                                undefined -> do_nothing;
-                                _ ->
-                                    case ets:lookup(web_socket_table, web_socket) of
-                                        [{web_socket,Misultin_ws}] ->
-                                            Changed_module_content = maps:get(Module_name, get(source_cache)),
-                                            Misultin_ws:send([Changed_module_content]);
-                                        _ -> do_nothing
-                                    end
-                            end,
-                            write_bundled_file(Entry, State1);
-                        false -> do_nothing
-                    end
-                end, 
-            maps:keys(get(source_cache)))
-    end,
-    rebuild_entry_if_module_changed().
-
-string_contains(Big, Small)->
-    string:str(Big, Small) > 0.
-
 bundle_js_in_dir_(Input_dir, Watch_mode) ->
     Js_files = filelib:wildcard(filename:join(Input_dir, filename:join("**", "*.js"))),
     Files = lists:filter(
@@ -125,14 +33,7 @@ bundle_js_in_dir_(Input_dir, Watch_mode) ->
 bundle_js_entries([], Acc, _) ->
     Acc;
 bundle_js_entries([Js_entry_file|Rest], Acc, Watch_mode) ->
-    Pid = spawn(fun() -> 
-        bundle_single_js(Js_entry_file),
-        case Watch_mode of
-            true ->
-                rebuild_entry_if_module_changed();
-            _ -> do_nothing
-        end
-    end),
+    Pid = spawn(commonjs_packager, bundle_single_js, [Js_entry_file, Watch_mode]),
     bundle_js_entries(Rest, [Pid|Acc], Watch_mode).
 
 watch(Dir, Pids) ->
@@ -140,15 +41,16 @@ watch(Dir, Pids) ->
     spawn(fun()-> 
         fs:start_link(fs_watcher, filename:absname(Dir)),
         fs:subscribe(fs_watcher),
-        on_file_changed(Pids)
+        notify_if_file_changed(Pids)
     end).
 
-on_file_changed(Pids) ->
+notify_if_file_changed(Pids) ->
     receive
         {_Pid, {fs,file_event}, {File, [inodemetamod,modified]}} ->
+            io:format("file changed~p ~n", [File]),
             case lists:suffix("-bundled.js", File) of
                 true -> do_nothing;
-                false -> 
+                false ->
                     lists:foreach(
                         fun (Pid) ->
                             Pid ! {file_changed, File}
@@ -157,73 +59,4 @@ on_file_changed(Pids) ->
             end;
         _ -> ignore
     end,
-    on_file_changed(Pids).
-
-bundle(Js_entry_file, Ext_name, State) ->
-    case file:read_file(Js_entry_file ++ Ext_name) of
-        {ok, Content} ->
-            Require_regexp = "(require\\((['|\"])(.*?)\\g2\\);?)",
-            Replaced = re:replace(remove_comments(Content), Require_regexp, ["require('", filename:join(filename:dirname(Js_entry_file), "\\g3"), "')"], [global]),
-            Map = maps:get(source_cache, State),
-            State1 = maps:put(source_cache, Map#{list_to_binary(Js_entry_file) => iolist_to_binary([Replaced, "\n//# sourceURL=", Js_entry_file])}, State),
-            Dependency_map = maps:get(dependency_graph, State),
-            case re:run(Replaced, Require_regexp, [global,{capture,[3],list}]) of
-                {match, Matched} ->
-                    Old_dependencies = maps:get(Js_entry_file, Dependency_map, []),
-                    Current_dependencies = [Module || [Module] <- Matched],
-                    case Current_dependencies =:= Old_dependencies of
-                        true -> State1;
-                        false ->
-                            State2 = maps:put(dependency_graph, Dependency_map#{Js_entry_file => Current_dependencies}, State1),
-                            lists:foldl(
-                                fun(Required_js_path, State) ->
-                                    case lists:suffix(".js", Required_js_path) of
-                                        true ->
-                                            bundle(Required_js_path, "", State);
-                                        false ->
-                                            bundle(Required_js_path, ".js", State)
-                                    end
-                                end
-                            , State2, Current_dependencies)
-                    end;
-                nomatch ->
-                    State1
-            end;
-        {error, enoent} -> 
-            error_log(Js_entry_file ++ " is missing"),
-            State
-    end.
-
-error_log(Msg) ->
-    io:format("\033[91m ~p \033[0m~n",[Msg]).
-
-remove_comments(Content) ->
-    Replaced = re:replace(Content, "//.*", <<"">>, [global]),
-
-    Regexp_block_comment = "\\/\\*[^*]*\\*+([^\\/*][^*]*\\*+)*\\/",
-    re:replace(Replaced, Regexp_block_comment, <<" ">>, [global]).
-
-js_require_function() ->
-    %% see https://github.com/marijnh/Eloquent-JavaScript/blob/master/10_modules.txt#L465
-    <<"
-    function require(url){
-        if (!require.cache[url]) {
-            var source = require.sourceCache[url];
-            if (!source) {
-                throw new Error(url + ' is missing!');
-            }
-            var exports = {};
-            var module = {
-                exports: exports
-            };
-            new Function('exports, module, require', source)(exports, module, require);
-            require.cache[url] = module.exports;
-            return module.exports;
-        } else {
-            return require.cache[url];
-        }
-    }
-
-    require.cache = {};
-    require.sourceCache = {};
-    ">>.
+    notify_if_file_changed(Pids).

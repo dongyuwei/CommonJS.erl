@@ -5,8 +5,4 @@
  {<<"jsx">>,
   {git,"https://github.com/talentdeficit/jsx.git",
        {ref,"3074d4865b3385a050badf7828ad31490d860df5"}},
-  0},
- {<<"misultin">>,
-  {git,"https://github.com/ostinelli/misultin.git",
-       {ref,"b9fe3125cf17f4415a6d7fc60642b670f5e18eb8"}},
   0}].

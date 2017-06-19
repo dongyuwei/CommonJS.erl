@@ -17,12 +17,3 @@ bundle_js_in_dir_test() ->
   commonjs:bundle_js_in_dir("./test", false),
   Bundled_count = string:strip(string:strip(os:cmd("ls ./test/**/*-bundled.js | wc -l")), both, $\n),
   ?assertEqual(Bundled_count, "2").
-
-
-start_server_test() ->
-  ?assertEqual(true, commonjs:stop_server()),
-
-  {ok, Pid} = commonjs:start_server("./test/commonjs", 8020),
-  ?assertEqual(true, is_pid(Pid)),
-
-  ?assertEqual(true, commonjs:stop_server()).

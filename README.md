@@ -26,10 +26,6 @@ API
 -----
 1. `commonjs:bundle_single_js(Js_entry_file)`
 2. `commonjs:bundle_js_in_dir(Input_dir, Watch_mode)`
-3. `commonjs:start_server(Assets_dir, Port).`
-    1. start dev server: `commonjs:start_server("./test/commonjs", 8020).`
-    2. visit http://127.0.0.1:8020/static/index.html
-4. `commonjs:stop_server()`
 
 Test in erl shell:
 -----
