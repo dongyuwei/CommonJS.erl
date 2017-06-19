@@ -17,19 +17,14 @@ bundle_js_in_dir(Input_dir, Watch_mode) ->
     end.
     
 bundle_single_js(Js_entry_file) ->
-    put("entry_name", Js_entry_file),
-    case get("source_cache") =:= undefined of
-        true ->
-            put("source_cache", #{});
-        false -> do_nothing
-    end,
-    case get("dependency_graph") =:= undefined of
-        true ->
-            put("dependency_graph", #{});
-        false -> do_nothing
-    end,
-    bundle(Js_entry_file, ""),
-    write_bundled_file(Js_entry_file).
+    State = #{
+        entry_name       => Js_entry_file,
+        source_cache     => #{},
+        dependency_graph => #{}
+    },
+
+    New_state = bundle(Js_entry_file, "", State),
+    write_bundled_file(Js_entry_file, New_state).
 
 start_server(Dir, Port) ->
     bundle_js_in_dir(Dir, true),
@@ -60,17 +55,17 @@ handle_websocket(Ws) ->
             handle_websocket(Ws)
     end.
 
-get_bundled_content(Js_entry_file) ->
+get_bundled_content(Js_entry_file, State) ->
     iolist_to_binary(["(function(){\n", 
         js_require_function(), 
         "\nrequire.sourceCache = ", 
-        jsx:prettify(jsx:encode(get("source_cache"))), 
+        jsx:prettify(jsx:encode(maps:get(source_cache, State))),
         ";\n",
-        maps:get(list_to_binary(Js_entry_file), get("source_cache")),
+        maps:get(list_to_binary(Js_entry_file), maps:get(source_cache, State)),
         ";\n})();"]).
 
-write_bundled_file(Js_entry_file) ->
-    Bundled_content = get_bundled_content(Js_entry_file),
+write_bundled_file(Js_entry_file, State) ->
+    Bundled_content = get_bundled_content(Js_entry_file, State),
     io:format("~p bundled to:~p ~n", [Js_entry_file, Js_entry_file ++ "-bundled.js"]),
     file:write_file(Js_entry_file ++ "-bundled.js", Bundled_content),
     Bundled_content.
@@ -84,28 +79,34 @@ rebuild_entry_if_module_changed() ->
                     case string_contains(File, binary_to_list(filename:join(Module_name, ""))) of
                         true ->
                             Required_module = binary_to_list(Module_name),
+                            State = #{
+                                source_cache     => #{},
+                                dependency_graph => #{}
+                            },
                             case lists:suffix(".js", Required_module) of
                                 true ->
-                                    bundle(Required_module, "");
-                                false -> 
-                                    bundle(Required_module, ".js")
+                                    State1 = maps:put(entry_name, Required_module, State),
+                                    bundle(Required_module, "", State1);
+                                false ->
+                                    State1 = maps:put(entry_name, Required_module ++ ".js", State),
+                                    bundle(Required_module, ".js", State1)
                             end,
-                            Entry = get("entry_name"),
+                            Entry = get(entry_name),
                             case ets:info(web_socket_table) of
                                 undefined -> do_nothing;
                                 _ ->
                                     case ets:lookup(web_socket_table, web_socket) of
                                         [{web_socket,Misultin_ws}] ->
-                                            Changed_module_content = maps:get(Module_name, get("source_cache")),
+                                            Changed_module_content = maps:get(Module_name, get(source_cache)),
                                             Misultin_ws:send([Changed_module_content]);
                                         _ -> do_nothing
                                     end
                             end,
-                            write_bundled_file(Entry);
+                            write_bundled_file(Entry, State1);
                         false -> do_nothing
                     end
                 end, 
-            maps:keys(get("source_cache")))
+            maps:keys(get(source_cache)))
     end,
     rebuild_entry_if_module_changed().
 
@@ -158,38 +159,39 @@ on_file_changed(Pids) ->
     end,
     on_file_changed(Pids).
 
-bundle(Js_entry_file, Ext_name) ->
+bundle(Js_entry_file, Ext_name, State) ->
     case file:read_file(Js_entry_file ++ Ext_name) of
         {ok, Content} ->
             Require_regexp = "(require\\((['|\"])(.*?)\\g2\\);?)",
             Replaced = re:replace(remove_comments(Content), Require_regexp, ["require('", filename:join(filename:dirname(Js_entry_file), "\\g3"), "')"], [global]),
-            Map = get("source_cache"),
-            put("source_cache", Map#{list_to_binary(Js_entry_file) => iolist_to_binary([Replaced, "\n//# sourceURL=", Js_entry_file])}),
-            Dependency_map = get("dependency_graph"),
+            Map = maps:get(source_cache, State),
+            State1 = maps:put(source_cache, Map#{list_to_binary(Js_entry_file) => iolist_to_binary([Replaced, "\n//# sourceURL=", Js_entry_file])}, State),
+            Dependency_map = maps:get(dependency_graph, State),
             case re:run(Replaced, Require_regexp, [global,{capture,[3],list}]) of
                 {match, Matched} ->
                     Old_dependencies = maps:get(Js_entry_file, Dependency_map, []),
                     Current_dependencies = [Module || [Module] <- Matched],
                     case Current_dependencies =:= Old_dependencies of
-                        true -> do_nothing;
+                        true -> State1;
                         false ->
-                            put("dependency_graph", Dependency_map#{Js_entry_file => Current_dependencies}),
-                            lists:foreach(
-                                fun(Required_js_path) -> 
+                            State2 = maps:put(dependency_graph, Dependency_map#{Js_entry_file => Current_dependencies}, State1),
+                            lists:foldl(
+                                fun(Required_js_path, State) ->
                                     case lists:suffix(".js", Required_js_path) of
                                         true ->
-                                            bundle(Required_js_path, "");
-                                        false -> 
-                                            bundle(Required_js_path, ".js")
+                                            bundle(Required_js_path, "", State);
+                                        false ->
+                                            bundle(Required_js_path, ".js", State)
                                     end
                                 end
-                            , Current_dependencies)
+                            , State2, Current_dependencies)
                     end;
-                nomatch -> 
-                    put("dependency_graph", Dependency_map#{Js_entry_file => []})
+                nomatch ->
+                    State1
             end;
         {error, enoent} -> 
-            error_log(Js_entry_file ++ " is missing")
+            error_log(Js_entry_file ++ " is missing"),
+            State
     end.
 
 error_log(Msg) ->
