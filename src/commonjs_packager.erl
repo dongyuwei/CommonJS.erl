@@ -42,12 +42,12 @@ bundle(Js_entry_file, Ext_name, State) ->
                         false ->
                             State2 = maps:put(dependency_graph, Dependency_map#{Js_entry_file => Current_dependencies}, State1),
                             lists:foldl(
-                                fun(Required_js_path, State) ->
+                                fun(Required_js_path, Reduced_state) ->
                                     case lists:suffix(".js", Required_js_path) of
                                         true ->
-                                            bundle(Required_js_path, "", State);
+                                            bundle(Required_js_path, "", Reduced_state);
                                         false ->
-                                            bundle(Required_js_path, ".js", State)
+                                            bundle(Required_js_path, ".js", Reduced_state)
                                     end
                                 end
                                 , State2, Current_dependencies)
@@ -80,16 +80,16 @@ rebuild_entry_if_module_changed(State) ->
         {file_changed, File} ->
             io:format("file_changed ~p ~n", [File]),
             New_state = lists:foldl(
-                fun(Module_name, State) ->
+                fun(Module_name, Reduced_state) ->
                     case string_contains(File, binary_to_list(filename:join(Module_name, ""))) of
                         true ->
                             Required_module = binary_to_list(Module_name),
                             case lists:suffix(".js", Required_module) of
                                 true ->
-                                    State1 = maps:put(entry_name, Required_module, State),
+                                    State1 = maps:put(entry_name, Required_module, Reduced_state),
                                     bundle(Required_module, "", State1);
                                 false ->
-                                    State1 = maps:put(entry_name, Required_module ++ ".js", State),
+                                    State1 = maps:put(entry_name, Required_module ++ ".js", Reduced_state),
                                     bundle(Required_module, ".js", State1)
                             end,
                             write_bundled_file(maps:get(entry_name), State1),

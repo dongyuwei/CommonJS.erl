@@ -9,7 +9,7 @@
     fs
    ]},
   {env,[]},
-  {modules, [commonjs]},
+  {modules, [commonjs, commonjs_packager]},
 
   {maintainers, ["newdongyuwei@gmail.com"]},
   {licenses, ["MIT license"]},
