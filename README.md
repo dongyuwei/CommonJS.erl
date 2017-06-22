@@ -24,17 +24,8 @@ Build
 
 API
 -----
-1. `commonjs:bundle_single_js(Js_entry_file)`
-2. `commonjs:bundle_js_in_dir(Input_dir, Watch_mode)`
-
-Test in erl shell:
------
-    $ rebar3 shell
-    $ os:cmd("rm ./test/**/*-bundled.js").
-    $ r3:do(compile).
-    $ commonjs:bundle_js_in_dir("./test", false).
-    $ {ok, Content} = file:read_file("test/commonjs/entry.js.txt").
-    $ Content =:= list_to_binary(os:cmd("node ./test/commonjs/entry.js-bundled.js")).
+1. `commonjs:bundle_single_js(Js_entry_file, Output_file)`
+2. `commonjs:bundle_js_in_dir(Input_dir, Output_dir, Watch_mode)`
 
 Run eunit test:
 -----

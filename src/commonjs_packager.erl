@@ -1,12 +1,12 @@
 -module(commonjs_packager).
 
 %% API
--export([bundle_single_js/2]).
+-export([bundle_single_js/3]).
 
 %%%===================================================================
 %%% API
 %%%===================================================================
-bundle_single_js(Js_entry_file, Watch_mode) ->
+bundle_single_js(Js_entry_file, Output, Watch_mode) ->
     State = #{
         entry_name       => Js_entry_file,
         source_cache     => #{},
@@ -14,7 +14,7 @@ bundle_single_js(Js_entry_file, Watch_mode) ->
     },
 
     New_state = bundle(Js_entry_file, "", State),
-    Bundled_content = write_bundled_file(Js_entry_file, New_state),
+    Bundled_content = write_bundled_file(Js_entry_file, Output, New_state),
     case Watch_mode of
         true ->
             rebuild_entry_if_module_changed(New_state);
@@ -69,33 +69,34 @@ get_bundled_content(Js_entry_file, State) ->
         maps:get(list_to_binary(Js_entry_file), maps:get(source_cache, State)),
         ";\n})();"]).
 
-write_bundled_file(Js_entry_file, State) ->
+write_bundled_file(Js_entry_file, Output, State) ->
     Bundled_content = get_bundled_content(Js_entry_file, State),
-    io:format("~p bundled to:~p ~n", [Js_entry_file, Js_entry_file ++ "-bundled.js"]),
-    file:write_file(Js_entry_file ++ "-bundled.js", Bundled_content),
+    io:format("~p bundled to:~p ~n", [Js_entry_file, Output]),
+    filelib:ensure_dir(Output),
+    file:write_file(Output, Bundled_content),
     Bundled_content.
 
 rebuild_entry_if_module_changed(State) ->
     receive
-        {file_changed, File} ->
-            io:format("file_changed ~p ~n", [File]),
+        {file_changed, File, Input_dir, Output_dir} ->
+            io:format("file_changed ~p ~p ~p ~n", [File, Input_dir, Output_dir]),
             New_state = lists:foldl(
                 fun(Module_name, Reduced_state) ->
                     case string_contains(File, binary_to_list(filename:join(Module_name, ""))) of
                         true ->
                             Required_module = binary_to_list(Module_name),
-                            case lists:suffix(".js", Required_module) of
+                            New_state = case lists:suffix(".js", Required_module) of
                                 true ->
-                                    State1 = maps:put(entry_name, Required_module, Reduced_state),
-                                    bundle(Required_module, "", State1);
+                                    bundle(Required_module, "", Reduced_state);
                                 false ->
-                                    State1 = maps:put(entry_name, Required_module ++ ".js", Reduced_state),
-                                    bundle(Required_module, ".js", State1)
+                                    bundle(Required_module, ".js", Reduced_state)
                             end,
-                            write_bundled_file(maps:get(entry_name), State1),
-                            State1;
+                            Entry_file = maps:get(entry_name, New_state),
+                            Output_entry_file = filename:join(Output_dir, re:replace(filename:absname(Entry_file), filename:absname(Input_dir) ++ "/", "", [{return,list}])),
+                            write_bundled_file(Entry_file, Output_entry_file, New_state),
+                            New_state;
                         false ->
-                            State
+                            Reduced_state
                     end
                 end,
                 State, maps:keys(maps:get(source_cache, State))),
