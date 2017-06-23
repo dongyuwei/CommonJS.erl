@@ -8,7 +8,7 @@ A CommonJS Packager in Erlang.
 3. It's expected to be a tiny and simple CommonJS Packager. I do't plan to implement all the features like [browserify](https://github.com/substack/node-browserify).
 
 ## Status
-1. The core features of Common Js packager/loader was done(It can bundle the `tests/commonjs/entry.js` now). 
+1. The core features of Common Js packager/loader was done(It can bundle the `test/commonjs/entry.js` now). 
 2. Watch and rebuild feature was done, [Design Ref](https://github.com/dongyuwei/CommonJS.erl/issues/2):
     1. If the changed js's dependencies also changed, process the js and it's dependent modules.
     2. If the dependencies of the changed js are not changed, only update the changed js itself.
