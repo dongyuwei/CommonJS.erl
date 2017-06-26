@@ -79,11 +79,11 @@ write_bundled_file(Js_entry_file, Output, State) ->
 rebuild_entry_if_module_changed(State) ->
     receive
         {file_changed, File, Input_dir, Output_dir} ->
-            io:format("file_changed ~p ~p ~p ~n", [File, Input_dir, Output_dir]),
             New_state = lists:foldl(
                 fun(Module_name, Reduced_state) ->
                     case string_contains(File, binary_to_list(filename:join(Module_name, ""))) of
                         true ->
+                            io:format("file_changed ~p ~n", [File]),
                             Required_module = binary_to_list(Module_name),
                             New_state = case lists:suffix(".js", Required_module) of
                                 true ->
