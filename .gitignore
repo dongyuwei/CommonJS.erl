@@ -20,3 +20,5 @@ node_modules
 
 commonjs.iml
 compile_commands.json
+.project
+.settings
