@@ -116,7 +116,7 @@ remove_comments(Content) ->
     re:replace(Replaced, Regexp_block_comment, <<" ">>, [global]).
 
 js_require_function() ->
-    %% see https://github.com/marijnh/Eloquent-JavaScript/blob/master/10_modules.txt#L465
+    %% see https://github.com/marijnh/Eloquent-JavaScript/blob/master/10_modules.md#commonjs
     <<"
     function require(url){
         if (!require.cache[url]) {
