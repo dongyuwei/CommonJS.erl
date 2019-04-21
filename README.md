@@ -3,7 +3,7 @@ CommonJS.erl
 A CommonJS Packager in Erlang.
 
 # Project Goal: speed, speed, and speed!
-1. Bundle Common JS modules concurrently using Erlang processes. It is expected to work like [browserify](https://github.com/substack/node-browserify).
+1. Bundle Common JS modules in parallel using Erlang processes. It is expected to work like [browserify](https://github.com/substack/node-browserify).
 2. Watch and incrementally rebuild Common JS modules concurrently using Erlang processes. It is expected to work like [watchify](https://github.com/substack/watchify).
 3. It's expected to be a tiny and simple CommonJS Packager. I do't plan to implement all the features like [browserify](https://github.com/substack/node-browserify).
 
